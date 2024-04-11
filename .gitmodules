@@ -1,0 +1,7 @@
+[submodule "musicbert_fork"]
+	path = musicbert_fork
+	url = https://github.com/malcolmsailor/musicbert_fork
+	branch = clean
+[submodule "music_df"]
+	path = music_df
+	url = https://github.com/malcolmsailor/music_df
