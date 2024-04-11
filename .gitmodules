@@ -5,3 +5,9 @@
 [submodule "music_df"]
 	path = music_df
 	url = https://github.com/malcolmsailor/music_df
+[submodule "write_seqs"]
+	path = write_seqs
+	url = https://github.com/malcolmsailor/write_chord_tones_seqs
+[submodule "reprs"]
+	path = reprs
+	url = https://github.com/malcolmsailor/reprs
