@@ -1,4 +1,4 @@
-HELPER_SCRIPTS_DIR=$(dirname $0)
+HELPER_SCRIPTS_DIR=$(dirname $0)/helpers
 SLURM_ID=$1
 
 # collate logits

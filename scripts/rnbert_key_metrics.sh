@@ -1,7 +1,7 @@
 set -e
 set -x
 
-HELPER_SCRIPTS_DIR=$(dirname $0)
+HELPER_SCRIPTS_DIR=$(dirname $0)/helpers
 SLURM_ID=$1
 VITERBI_ALPHA={$2-7.0}
 
