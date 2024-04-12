@@ -29,6 +29,12 @@ PredictionFileType = Literal["h5", "txt", "both"]
 
 LOGGER = logging.getLogger(__name__)
 
+import traceback, pdb, sys
+def custom_excepthook(exc_type, exc_value, exc_traceback):
+    if exc_type != KeyboardInterrupt:
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
+        pdb.post_mortem(exc_traceback)
+sys.excepthook = custom_excepthook
 
 @dataclass
 class Config:
@@ -289,8 +295,6 @@ def main():
                 metadata_row["df_indices"] = merged_indices
                 metadata_rows.append(metadata_row)
                 out_predictions.append(merged_predictions)
-                if config.debug:
-                    break
 
             reference_out_metadata_df = handle_metadata(
                 metadata_rows, reference_out_metadata_df, config
@@ -302,8 +306,6 @@ def main():
                     outf.write(" ".join(tokens))
                     outf.write("\n")
             print(f"Wrote {out_preds_path}")
-            if config.debug:
-                break
 
     if config.prediction_file_type in {"h5", "both"}:
         predictions_paths = glob.glob(os.path.join(config.predictions, "*.h5"))
@@ -346,16 +348,12 @@ def main():
                 metadata_rows.append(metadata_row)
                 h5outf.create_dataset(f"logits_{score_i}", data=merged_predictions)
                 out_predictions.append(merged_predictions)
-                if config.debug:
-                    break
             h5outf.close()
             reference_out_metadata_df = handle_metadata(
                 metadata_rows, reference_out_metadata_df, config
             )
 
             print(f"Wrote {out_preds_path}")
-            if config.debug:
-                break
 
 
 if __name__ == "__main__":

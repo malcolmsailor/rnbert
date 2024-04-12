@@ -1,6 +1,7 @@
 #!/bin/bash
 
 RNBERT_DIR=$(dirname $0)/..
+NUM_WORKERS=${1-16}
 ZIP_FILE="${RNBERT_DIR}/dataset.zip"
 EXTRACT_DIR=$(mktemp -d)
 
@@ -29,7 +30,7 @@ python -m write_seqs \
     --data-settings ${RNBERT_DIR}/write_seqs/configs/oct_data_abstract.yaml \
     --output-dir ${SEQS_DIR} \
     --input-paths-dir ${RNBERT_DIR}/data_splits \
-    --num-workers 8 \
+    --num-workers ${NUM_WORKERS} \
     --overwrite
 
 python ${RNBERT_DIR}/write_seqs/scripts/to_fair_seq_abstract.py \
