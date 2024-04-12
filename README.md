@@ -4,7 +4,7 @@ We cobbled the initial version of this repo together quickly to meet the ISMIR d
 
 1. Include the dataset creation code (i.e., the code that creates `dataset.zip`).
 2. Port the model from `fairseq` to `huggingface`. Using a more actively maintained library should simplify the environment creation, allow others to use the model more easily, and make it easier to try more recent fine-tuning techniques like LORA.
-3. Include tools for visualizing the predictions.
+3. Include our tools for visualizing the predictions on scores.
 
 # 1. Set up environment
 
@@ -117,7 +117,13 @@ python musicbert_fork/training_scripts/train_chord_tones.py \
 
 # 5. Get evaluation metrics
 
-First, note the "ID" of the run. <!-- TODO 2024-04-12 finish -->
+You'll need to note the "RUN_ID", which is a numeric string under which the logits will have been saved in `${RN_PREDS}`. If you're running on SLURM, it'll be the ID of the job. Otherwise, it'll be taken from the system clock.
+
+## Key metrics
+
+```bash
+bash scripts/rnbert_key_metrics.sh [RUN_ID]
+```
 
 ## Unconditioned roman numeral metrics
 
@@ -133,4 +139,8 @@ bash scripts/rnbert_conditioned_metrics [RUN_ID]
 
 ## Conditioned roman numeral metrics (with predicted keys)
 
-<!-- TODO 2024-04-12  -->
+TODO directions very soon. (This is a little more complicated because we need to binarize the predicted keys for fairseq.)
+
+# 6. Run existing checkpoints
+
+TODO
