@@ -28,7 +28,9 @@ python -m write_seqs \
     --src-data-dir ${EXTRACT_DIR} \
     --data-settings ${RNBERT_DIR}/write_seqs/configs/oct_data_abstract.yaml \
     --output-dir ${SEQS_DIR} \
-    --input-paths-dir ${RNBERT_DIR}/data_splits
+    --input-paths-dir ${RNBERT_DIR}/data_splits \
+    --num-workers 8 \
+    --overwrite
 
 python ~/code/write_seqs/scripts/to_fair_seq_abstract.py \
     --input-dir ${SEQS_DIR} \
