@@ -2,3 +2,5 @@ pandas
 pyyaml
 omegaconf
 dacite
+h5py
+sh
