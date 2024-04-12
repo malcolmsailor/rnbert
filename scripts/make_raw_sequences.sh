@@ -32,7 +32,7 @@ python -m write_seqs \
     --num-workers 8 \
     --overwrite
 
-python ~/code/write_seqs/scripts/to_fair_seq_abstract.py \
+python ${RNBERT_DIR}/write_seqs/scripts/to_fair_seq_abstract.py \
     --input-dir ${SEQS_DIR} \
     --output-dir ${FAIRSEQ_ABSTRACT_RAW} \
     --overwrite

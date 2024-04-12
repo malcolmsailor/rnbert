@@ -26,11 +26,20 @@ conda activate rnbert
 pip install -r rnbert_extra_requirements.txt
 ```
 
+## Environment variables
+
+There are a few environment variables that control the behavior of the scripts. You can leave them with their default values or set them as you prefer:
+
+- `RNDATA_ROOT`: where the data is saved. Default: `${HOME}/datasets`.
+- `RN_CKPTS`: where checkpoints are saved. Default: `${HOME}/saved_checkpoints/rnbert`.
+- `RN_PREDS`: where predictions are saved. Default: `${HOME}/saved_predictions/rnbert`.
+
+
 # 2. Build the data
 
 To specify where the following commands put the dataset, set the `RNDATA_ROOT` environment variable. The default location is `${HOME}/datasets`.
 
-In the `write_seqs` environment, make the raw dataset:
+In the `write_seqs` environment, make the raw dataset (sadly, quite slow):
 
 ```bash
 bash scripts/make_raw_sequences.sh
@@ -62,8 +71,8 @@ Run the following commands inside the `rnbert` environment. Optionally, you can 
 
 ```bash
 python musicbert_fork/training_scripts/train_chord_tones.py \
-    -d TODO \
     -a base \
+    -d TODO \
     --validate-interval-updates 2500 \
     --lr 0.00025 \
     --freeze-layers 9 \
@@ -107,3 +116,21 @@ python training_scripts/train_chord_tones.py \
 ```
 
 # 5. Get evaluation metrics
+
+First, note the "ID" of the run. <!-- TODO 2024-04-12 finish -->
+
+## Unconditioned roman numeral metrics
+
+```bash
+bash scripts/rnbert_unconditioned_metrics [RUN_ID]
+```
+
+## Conditioned roman numeral metrics (teacher forcing)
+
+```bash
+bash scripts/rnbert_conditioned_metrics [RUN_ID]
+```
+
+## Conditioned roman numeral metrics (with predicted keys)
+
+<!-- TODO 2024-04-12  -->
