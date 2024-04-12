@@ -1,6 +1,9 @@
 HELPER_SCRIPTS_DIR=$(dirname $0)/helpers
 SLURM_ID=$1
 
+set -e
+set -x
+
 # collate logits
 
 python ${HELPER_SCRIPTS_DIR}/collate_predictions.py \
@@ -25,3 +28,5 @@ python ${HELPER_SCRIPTS_DIR}/get_per_salami_slice_preds.py \
 bash ${HELPER_SCRIPTS_DIR}/musicbert_synced_metrics_concat_degree.sh \
     ${RN_PREDS}/per_salami_slice_predictions/${SLURM_ID}_collated/test \
     ${RN_PREDS}/${SLURM_ID}_synced_metrics.csv --uniform-steps
+
+set +x

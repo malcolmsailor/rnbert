@@ -13,18 +13,20 @@ shift
 shift
 
 xx=(
+    "key"
     "degree"
     "quality"
     "inversion"
     "dqi"
-    # "rdqi"
+    "kdqi"
 )
 names=(
+    "key_pc mode"
     "primary_alteration_primary_degree_secondary_alteration_secondary_degree"
     "quality"
     "inversion"
     "primary_alteration_primary_degree_secondary_alteration_secondary_degree quality inversion"
-    # "root_pc primary_alteration_primary_degree_secondary_alteration_secondary_degree quality inversion"
+    "key_pc mode primary_alteration_primary_degree_secondary_alteration_secondary_degree quality inversion"
 )
 
 if [ ${#xx[@]} -ne ${#names[@]} ]; then
