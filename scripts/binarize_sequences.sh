@@ -6,8 +6,8 @@ RNDATA_ROOT="${RNDATA_ROOT-${HOME}/datasets}"
 FAIRSEQ_ABSTRACT_RAW="${FAIRSEQ_ABSTRACT_RAW-${RNDATA_ROOT}/rnbert_abstract_data_raw}"
 FAIRSEQ_ABSTRACT_BIN="${FAIRSEQ_ABSTRACT_RAW%_raw}_bin"
 FAIRSEQ_KEY_BIN="${FAIRSEQ_KEY_BIN-${RNDATA_ROOT}/rnbert_key_data_bin}"
-FAIRSEQ_RN_COND_BIN="${FAIRSEQ_KEY_BIN-${RNDATA_ROOT}/rnbert_rn_cond_data_bin}"
-FAIRSEQ_RN_UNCOND_BIN="${FAIRSEQ_KEY_BIN-${RNDATA_ROOT}/rnbert_rn_uncond_data_bin}"
+FAIRSEQ_RN_COND_BIN="${FAIRSEQ_RN_COND_BIN-${RNDATA_ROOT}/rnbert_rn_cond_data_bin}"
+FAIRSEQ_RN_UNCOND_BIN="${FAIRSEQ_RN_UNCOND_BIN-${RNDATA_ROOT}/rnbert_rn_uncond_data_bin}"
 
 set -e
 set -x
