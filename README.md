@@ -1,13 +1,21 @@
 # Roadmap
 
+We cobbled the initial version of this repo together quickly to meet the ISMIR deadline. Here are some next steps we intend to do in the short to medium term future:
+
+1. Include the dataset creation code (i.e., the code that creates `dataset.zip`).
+2. Port the model from `fairseq` to `huggingface`. Using a more actively maintained library should simplify the environment creation, allow others to use the model more easily, and make it easier to try more recent fine-tuning techniques like LORA.
+3. Include tools for visualizing the predictions.
+
 # 1. Set up environment
 
 We use two different environments, the first, `write_seqs` to write the dataset in the OctupleMIDI format, and the second, `rnbert` for the fine-tuning. We found setting up a `fairseq` environment capable of running the `MidiBERT` checkpoint to be quite finicky and were only able to get it working with Python 3.8, whereas the code used to write the dataset requires Python >= 3.11.
 
 ## Create `write_seqs` environment
 
-<!-- TODO 2024-04-11 these commands -->
+First create the `write_seqs` environment with conda or pip according to your preference, then do
+
 ```bash
+pip install -r write_seqs_requirements.txt
 ```
 
 ## Create `rnbert` environment
@@ -48,9 +56,9 @@ export MUSICBERT_DEFAULT_CHECKPOINT=/path/to/checkpoint
 
 <!-- TODO 2024-04-11 update paths -->
 
-Optionally, you can add a `-W/--wandb-project [project name]` argument to any of the below commands to log the training metrics to a wandb project.
+Run the following commands inside the `rnbert` environment. Optionally, you can add a `-W/--wandb-project [project name]` argument to any of the below commands to log the training metrics to a wandb project.
 
-Train key prediction model:
+## Train key prediction model
 
 ```bash
 python musicbert_fork/training_scripts/train_chord_tones.py \
@@ -64,7 +72,7 @@ python musicbert_fork/training_scripts/train_chord_tones.py \
     --fp16
 ```
 
-Train unconditioned roman numeral model:
+## Train unconditioned roman numeral model
 
 
 ```bash
@@ -80,7 +88,7 @@ python training_scripts/train_chord_tones.py \
     --warmup-updates 2500
 ```
 
-Train conditioned roman numeral model:
+## Train conditioned roman numeral model
 
 ```bash
 python training_scripts/train_chord_tones.py \

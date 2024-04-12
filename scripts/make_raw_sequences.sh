@@ -34,5 +34,6 @@ python -m write_seqs \
 
 python ~/code/write_seqs/scripts/to_fair_seq_abstract.py \
     --input-dir ${SEQS_DIR} \
-    --output-dir ${FAIRSEQ_ABSTRACT_RAW}
+    --output-dir ${FAIRSEQ_ABSTRACT_RAW} \
+    --overwrite
 set +x
