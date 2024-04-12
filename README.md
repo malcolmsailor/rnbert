@@ -85,7 +85,7 @@ python musicbert_fork/training_scripts/train_chord_tones.py \
 
 
 ```bash
-python training_scripts/train_chord_tones.py \
+python musicbert_fork/training_scripts/train_chord_tones.py \
     -a base \
     -d ${RNDATA_ROOT-${HOME}/datasets}/rnbert_rn_uncond_data_bin \
     --multitask \
@@ -100,7 +100,7 @@ python training_scripts/train_chord_tones.py \
 ## Train conditioned roman numeral model
 
 ```bash
-python training_scripts/train_chord_tones.py \
+python musicbert_fork/training_scripts/train_chord_tones.py \
     -a dual_encoder_base \
     -d ${RNDATA_ROOT-${HOME}/datasets}/rnbert_rn_cond_data_bin \
     --conditioning key_pc_mode \
