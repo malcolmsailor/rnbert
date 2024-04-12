@@ -72,7 +72,7 @@ Run the following commands inside the `rnbert` environment. Optionally, you can 
 ```bash
 python musicbert_fork/training_scripts/train_chord_tones.py \
     -a base \
-    -d TODO \
+    -d ${RNDATA_ROOT-${HOME}/datasets}/rnbert_key_data_bin \
     --validate-interval-updates 2500 \
     --lr 0.00025 \
     --freeze-layers 9 \
@@ -87,7 +87,7 @@ python musicbert_fork/training_scripts/train_chord_tones.py \
 ```bash
 python training_scripts/train_chord_tones.py \
     -a base \
-    -d TODO \
+    -d ${RNDATA_ROOT-${HOME}/datasets}/rnbert_rn_uncond_data_bin \
     --multitask \
     --validate-interval-updates 2500 \
     --lr 0.00025 \
@@ -102,7 +102,7 @@ python training_scripts/train_chord_tones.py \
 ```bash
 python training_scripts/train_chord_tones.py \
     -a dual_encoder_base \
-    -d TODO \ 
+    -d ${RNDATA_ROOT-${HOME}/datasets}/rnbert_rn_cond_data_bin \
     --conditioning key_pc_mode \
     --multitask \
     --validate-interval-updates 2500 \
