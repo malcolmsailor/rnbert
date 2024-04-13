@@ -7,7 +7,8 @@ if [ -z "$KEY_RUN_ID" ]; then
     exit 1
 fi
 
-
+set -x
+set -e
 # collate logits
 
 python "${HELPER_SCRIPTS_DIR}/collate_predictions.py" \
@@ -19,6 +20,7 @@ python "${HELPER_SCRIPTS_DIR}/collate_predictions.py" \
 
 # get per-salami-slice preds
 
+## RN
 python "${HELPER_SCRIPTS_DIR}/get_per_salami_slice_preds.py" \
     column_types.inversion=float \
     metadata="${RN_PREDS}/collated_predictions/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID}/metadata_test.txt" \
@@ -28,10 +30,20 @@ python "${HELPER_SCRIPTS_DIR}/get_per_salami_slice_preds.py" \
     concat_features='[[primary_alteration,primary_degree,secondary_alteration,secondary_degree]]' \
     n_specials=0 collated=True
 
+## Key
+
+python "${HELPER_SCRIPTS_DIR}/get_per_salami_slice_preds.py" \
+    column_types.inversion=float \
+    metadata="${RN_PREDS}/collated_predictions/${KEY_RUN_ID}/metadata_test.txt" \
+    predictions="${RN_PREDS}/collated_predictions/${KEY_RUN_ID}/predictions" \
+    dictionary_folder="${RN_PREDS}/${KEY_RUN_ID}/test" \
+    output_folder="${RN_PREDS}/per_salami_slice_predictions/${KEY_RUN_ID}_collated/test" \
+    concat_features='[[key_pc,mode]]' n_specials=0 collated=True
+
 # calculate metrics
-bash "shell_scripts/musicbert_synced_metrics_concat_degree_with_conditioning.sh" \
-    ${RN_PREDS}/per_salami_slice_predictions/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID}_collated/test \
-    ${RN_PREDS}/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID}_metrics.csv --uniform-steps
+bash "${HELPER_SCRIPTS_DIR}/musicbert_synced_metrics_concat_degree_with_conditioning.sh" \
+    "${RN_PREDS}/per_salami_slice_predictions/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID}_collated/test" \
+    "${RN_PREDS}/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID}_metrics.csv" --uniform-steps
 
 # get K+D+Q+I score
 
@@ -41,11 +53,15 @@ python "${HELPER_SCRIPTS_DIR}/calculate_metrics_from_csvs.py" \
     "${RN_PREDS}/per_salami_slice_predictions/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID}_collated/test/inversion.csv" \
     "${RN_PREDS}/per_salami_slice_predictions/${KEY_RUN_ID}_collated/test/key_pc_mode.csv"
 
-# get K+R+D+Q+I score
 
+if [ -f "${RN_PREDS}/per_salami_slice_predictions/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID}_collated/test/root_pc.csv" ] ; then
+# get K+R+D+Q+I score
 python "${HELPER_SCRIPTS_DIR}/calculate_metrics_from_csvs.py" \
     "${RN_PREDS}/per_salami_slice_predictions/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID}_collated/test/primary_alteration_primary_degree_secondary_alteration_secondary_degree.csv" \
     "${RN_PREDS}/per_salami_slice_predictions/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID}_collated/test/quality.csv" \
     "${RN_PREDS}/per_salami_slice_predictions/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID}_collated/test/inversion.csv" \
     "${RN_PREDS}/per_salami_slice_predictions/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID}_collated/test/root_pc.csv" \
     "${RN_PREDS}/per_salami_slice_predictions/${KEY_RUN_ID}_collated/test/key_pc_mode.csv"
+fi
+
+set +x
