@@ -1,5 +1,3 @@
-<!-- TODO 2024-04-13 update rnbert environment with pandas -->
-
 # Roadmap
 
 We cobbled the initial version of this repo together quickly to meet the ISMIR deadline. Here are some next steps we intend to do in the short to medium term future:
@@ -144,7 +142,7 @@ python musicbert_fork/eval_scripts/save_multi_task_predictions.py \
     --data-dir "${RNDATA_ROOT-${HOME}/datasets}/rnbert_rn_cond_test_data_bin" \
     --checkpoint "${RN_CKPTS}/${RN_RUN_ID}/checkpoint_best.pt" \
     --output-folder "${RN_PREDS}"/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID} \
-    --task musicbert_conditioned_multitarget_sequence_tagging
+    --task musicbert_conditioned_multitask_sequence_tagging
 ```
 
 # 5. Get evaluation metrics
