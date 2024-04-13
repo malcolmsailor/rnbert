@@ -115,9 +115,29 @@ python musicbert_fork/training_scripts/train_chord_tones.py \
     --z-embed-dim 256
 ```
 
+## Save roman numeral predictions conditioned on predicted keys (for testing)
+
+<!-- TODO 2024-04-13 First, build data and train conditioned model. -->
+
+First, assign the following variables:
+```bash
+RN_RUN_ID=# Run id of the conditioned roman numeral model checkpoint you want to use
+KEY_RUN_ID=# Run id of the key model whose predictions you are using
+```
+
+Then run the following command
+```bash
+python ~/code/musicbert_fork/training_scripts/../eval_scripts/save_multi_task_predictions.py \
+    --dataset test \
+    --data-dir "${RNDATA_ROOT-${HOME}/datasets}/rnbert_rn_cond_test_data_bin" \
+    --checkpoint "${RN_CKPTS}/${RN_RUN_ID}/checkpoint_best.pt" \
+    --output-folder "${RN_PREDS}"/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID} \
+    --task musicbert_conditioned_multitarget_sequence_tagging
+```
+
 # 5. Get evaluation metrics
 
-You'll need to note the "RUN_ID", which is a numeric string under which the logits will have been saved in `${RN_PREDS}`. If you're running on SLURM, it'll be the ID of the job. Otherwise, it'll be taken from the system clock.
+These commands should be run in the `write_seqs` environment. You'll need to note the "RUN_ID", which is a numeric string under which the logits will have been saved in `${RN_PREDS}`. If you're running on SLURM, it'll be the ID of the job. Otherwise, it'll be taken from the system clock.
 
 ## Key metrics
 
@@ -128,18 +148,22 @@ bash scripts/rnbert_key_metrics.sh [RUN_ID]
 ## Unconditioned roman numeral metrics
 
 ```bash
-bash scripts/rnbert_unconditioned_metrics [RUN_ID]
+bash scripts/rnbert_unconditioned_metrics.sh [RUN_ID]
 ```
 
 ## Conditioned roman numeral metrics (teacher forcing)
 
 ```bash
-bash scripts/rnbert_conditioned_metrics [RUN_ID]
+bash scripts/rnbert_conditioned_metrics.sh [RUN_ID]
 ```
 
 ## Conditioned roman numeral metrics (with predicted keys)
 
-TODO directions very soon. (This is a little more complicated because we need to binarize the predicted keys for fairseq.)
+<!-- TODO 2024-04-13 finish directions -->
+```bash
+bash scripts/rnbert_conditioned_on_preds_metrics.sh [RN_RUN_ID] [KEY_RUN_ID]
+```
+
 
 # 6. Run existing checkpoints
 

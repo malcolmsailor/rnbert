@@ -5,7 +5,7 @@ HELPER_SCRIPTS_DIR=$(dirname $0)/helpers
 SLURM_ID=$1
 VITERBI_ALPHA=${2-7.0}
 
-collate logits
+# collate logits
 
 python ${HELPER_SCRIPTS_DIR}/collate_predictions.py \
     metadata=${RN_PREDS}/${SLURM_ID}/test/metadata_test.txt \
