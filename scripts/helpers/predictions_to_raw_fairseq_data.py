@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from omegaconf import OmegaConf
 import pandas as pd
 from tqdm import tqdm
+from typing import Optional
 
 import traceback, pdb, sys
 
@@ -37,7 +38,7 @@ class Config:
     output_path: str
     uncollated_metadata: str
     # To check the input, we see how it compares with the labeled data
-    comparison_path: str | None = None
+    comparison_path: Optional[str] = None
     start_token: str = "<s>"
 
 
