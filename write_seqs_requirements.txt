@@ -4,6 +4,7 @@ omegaconf
 dacite
 h5py
 sh
+scikit-learn
 -e ./music_df
 -e ./reprs
 -e ./write_seqs
