@@ -20,6 +20,8 @@ FAIRSEQ_ABSTRACT_RAW="${FAIRSEQ_ABSTRACT_RAW-${RNDATA_ROOT}/rnbert_abstract_data
 # # Ensure cleanup runs on script exit, error, or interrupt
 # trap cleanup EXIT
 
+mkdir -p "$RNDATA_ROOT"
+
 # Silently unzip the file
 echo Unzipping "$ZIP_FILE" to "$CSV_DIR"
 unzip -qq "$ZIP_FILE" -d "$CSV_DIR"

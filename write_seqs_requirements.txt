@@ -4,3 +4,6 @@ omegaconf
 dacite
 h5py
 sh
+-e ./music_df
+-e ./reprs
+-e ./write_seqs
