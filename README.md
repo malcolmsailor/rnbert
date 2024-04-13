@@ -2,7 +2,7 @@
 
 We cobbled the initial version of this repo together quickly to meet the ISMIR deadline. Here are some next steps we intend to do in the short to medium term future:
 
-1. Include the dataset creation code (i.e., the code that creates `dataset.zip`).
+1. Include the dataset creation code (i.e., the code that creates the `dataset.zip` currently included in this repository).
 2. Port the model from `fairseq` to `huggingface`. Using a more actively maintained library should simplify the environment creation, allow others to use the model more easily, and make it easier to try more recent fine-tuning techniques like LORA.
 3. Include our tools for visualizing the predictions on scores.
 
@@ -53,6 +53,14 @@ bash scripts/binarize_sequences.sh
 
 The above command first binarizes an "abstract" dataset containing all the features we might wish to predict, and then instantiates specific versions of it with symlinks for the key prediction, conditioned roman numeral prediction, and unconditioned roman numeral prediction tasks.
 
+## Make key-conditioned test dataset
+
+To get the metrics for the key-conditioned model, using predicted keys, run the following command in the `rnbert` environment. First, you'll need to [train a key prediction model](#train-key-prediction-model) and note the associated run id.
+
+```bash
+bash scripts/make_key_cond_data.sh [KEY_RUN_ID]
+```
+
 # 3. Download checkpoint
 
 Download the `musicbert_base` checkpoint from [https://1drv.ms/u/s!Av1IXjAYTqPsuBaM9pZB47xjX_b0?e=wg2D5O](https://1drv.ms/u/s!Av1IXjAYTqPsuBaM9pZB47xjX_b0?e=wg2D5O). Save it wherever you like and then assign the MUSICBERT_DEFAULT_CHECKPOINT environment variable to its path:
@@ -63,9 +71,9 @@ export MUSICBERT_DEFAULT_CHECKPOINT=/path/to/checkpoint
 
 # 4. Fine-tune RNBert
 
-<!-- TODO 2024-04-11 update paths -->
+Run the following commands inside the `rnbert` environment. Optionally, you can add a `-W/--wandb-project [project name]` argument to any of the below commands to log the training metrics to a wandb project. 
 
-Run the following commands inside the `rnbert` environment. Optionally, you can add a `-W/--wandb-project [project name]` argument to any of the below commands to log the training metrics to a wandb project.
+These commands fine-tune a model, saving checkpoints to the ${RN_CKPTS} directory and saving the logits on the test set to the ${RN_PREDS} directory.
 
 ## Train key prediction model
 
@@ -117,17 +125,19 @@ python musicbert_fork/training_scripts/train_chord_tones.py \
 
 ## Save roman numeral predictions conditioned on predicted keys (for testing)
 
-<!-- TODO 2024-04-13 First, build data and train conditioned model. -->
+First, [train a key prediction model](#train-key-prediction-model) and [train a conditioned roman numeral model](#train-conditioned-roman-numeral-model), noting the run ids associated with each. Then [make the key-conditioned test set](#make-key-conditioned-test-dataset). 
 
-First, assign the following variables:
+Now assign the following variables:
+
 ```bash
 RN_RUN_ID=# Run id of the conditioned roman numeral model checkpoint you want to use
 KEY_RUN_ID=# Run id of the key model whose predictions you are using
 ```
 
-Then run the following command
+Then run the following command (ideally with CUDA):
+
 ```bash
-python ~/code/musicbert_fork/training_scripts/../eval_scripts/save_multi_task_predictions.py \
+python musicbert_fork/eval_scripts/save_multi_task_predictions.py \
     --dataset test \
     --data-dir "${RNDATA_ROOT-${HOME}/datasets}/rnbert_rn_cond_test_data_bin" \
     --checkpoint "${RN_CKPTS}/${RN_RUN_ID}/checkpoint_best.pt" \
@@ -159,7 +169,6 @@ bash scripts/rnbert_conditioned_metrics.sh [RUN_ID]
 
 ## Conditioned roman numeral metrics (with predicted keys)
 
-<!-- TODO 2024-04-13 finish directions -->
 ```bash
 bash scripts/rnbert_conditioned_on_preds_metrics.sh [RN_RUN_ID] [KEY_RUN_ID]
 ```
