@@ -4,24 +4,28 @@ import csv
 import glob
 import logging
 import os
+import pdb
+import sys
+import traceback
+import warnings
 from dataclasses import dataclass, field
 from typing import Literal
 
 import h5py
 import numpy as np
 import pandas as pd
+from disscode.files import exit_if_output_is_newer
+from disscode.script_helpers import normalize_string
 from tqdm import tqdm
 
 from music_df import quantize_df, read_csv
 from music_df.add_feature import concatenate_features
-from music_df.crop_df import crop_df
 from music_df.salami_slice import (
     appears_salami_sliced,
     get_unique_salami_slices,
-    slice_into_uniform_steps,
 )
 from music_df.script_helpers import get_csv_path, get_itos, get_stoi, read_config_oc
-from music_df.sync_df import get_unique_from_array_by_df, sync_array_by_df
+from music_df.sync_df import get_unique_from_array_by_df
 
 try:
     from disscode.utils.moving_average import moving_average
@@ -35,11 +39,9 @@ logging.basicConfig(level=logging.INFO)
 
 DEFAULT_OUTPUT = os.path.expanduser(os.path.join("~", "output", "metrics"))
 
-import traceback, pdb, sys
-
 
 def custom_excepthook(exc_type, exc_value, exc_traceback):
-    if exc_type != KeyboardInterrupt:
+    if exc_type is not KeyboardInterrupt:
         traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
         pdb.post_mortem(exc_traceback)
 
@@ -56,7 +58,9 @@ class Config:
     # predictions: h5 file containing predicted tokens. Rows
     # should be in one-to-one correspondance with metadata.
     predictions: str
-    dictionary_folder: str | None = None
+    # We allow dictionary_folder to be a sequence for the case where
+    #   we are getting harmony onsets from a separate run
+    dictionary_folder: tuple[str, ...] | str | None = None
 
     # In the event where we get predictions on a fairseq dataset that was separately
     #   binarized, the counts of token types may differ, and (since fairseq) sorts
@@ -84,6 +88,8 @@ class Config:
         "root_pc",
     )
     concat_features: tuple[tuple[str, ...], ...] = ()
+    ignore_features: tuple[str, ...] = ()
+
     csv_prefix_to_strip: None | str = None
     csv_prefix_to_add: None | str = None
     column_types: dict[str, str] = field(default_factory=lambda: {})
@@ -97,6 +103,15 @@ class Config:
     @property
     def concat_feature_names(self):
         return ["_".join(f) for f in self.concat_features]
+
+    def __post_init__(self):
+        if isinstance(self.ignore_features, str):
+            self.ignore_features = (self.ignore_features,)
+
+        if self.dictionary_folder is not None:
+            if isinstance(self.dictionary_folder, str):
+                self.dictionary_folder = (self.dictionary_folder,)
+            self.dictionary_folder = tuple(self.dictionary_folder)
 
 
 def parse_args():
@@ -134,14 +149,20 @@ def process_h5(
         ["path", "indices", "uniform_steps", "labels", "predicted", "note_indices"]
     )
 
+    output_h5_path = os.path.join(config.output_folder, f"{feature_name}.h5")
+    output_h5 = h5py.File(output_h5_path, mode="w")
+
     assert len(metadata_df) >= len(h5file)
     prev_csv_path: None | str = None
     music_df: pd.DataFrame | None = None
 
     for i in tqdm(range(len(h5file))):
         metadata_row = metadata_df.iloc[i]
-        logits: np.ndarray = (h5file[f"logits_{i}"])[:]  # type:ignore
-        # TODO: (Malcolm 2023-11-27) aggregate logits across entire score
+        try:
+            logits: np.ndarray = (h5file[f"logits_{i}"])[:]  # type:ignore
+        except KeyError:
+            warnings.warn(f"Key 'logits_{i}' not found in {h5file}, skipping")
+            continue
 
         if config.data_has_start_and_stop_tokens:
             logits = logits[1:-1]
@@ -149,6 +170,9 @@ def process_h5(
         if prev_csv_path is None or metadata_row.csv_path != prev_csv_path:
             prev_csv_path = metadata_row.csv_path
             assert isinstance(prev_csv_path, str)
+            if not os.path.exists(prev_csv_path):
+                prev_csv_path = normalize_string(prev_csv_path)
+
             # LOGGER.info(f"Reading {get_csv_path(prev_csv_path, config)}")
             music_df = read_csv(get_csv_path(prev_csv_path, config))
             if music_df is None:
@@ -163,7 +187,7 @@ def process_h5(
             df_indices = ast.literal_eval(df_indices)
 
         if not config.collated and min(df_indices) != df_indices[0]:
-            LOGGER.warning(f"skipping a file because min(df_indices) != df_indices[0]")
+            LOGGER.warning("skipping a file because min(df_indices) != df_indices[0]")
 
         # This former strategy for cropping led to incorrect results sometimes:
         # cropped_df = crop_df(music_df, start_i=min(df_indices), end_i=max(df_indices))
@@ -208,12 +232,11 @@ def process_h5(
                 #   first so that smoothing will not favor larger magnitude logits
                 probs = softmax(logits)
                 assert probs.ndim == 2
-                smoothed = moving_average(probs, axis=0, n=config.smoothing)
+                smoothed = moving_average(probs, axis=0, n=config.smoothing)  # type:ignore
                 predicted_indices = smoothed.argmax(axis=-1)
             else:
                 predicted_indices = logits.argmax(axis=-1)
         elif config.average == "probs":
-
             if config.smoothing:
                 raise NotImplementedError
 
@@ -256,6 +279,10 @@ def process_h5(
                 [index_translators[i] for i in predicted_indices]
             )
 
+        output_h5.create_dataset(
+            f"predictions_{i}", data=np.array(predicted_indices, dtype=np.int32)
+        )
+
         writer.writerow(
             [
                 prev_csv_path,
@@ -266,22 +293,32 @@ def process_h5(
                 note_indices.tolist(),
             ]
         )
-    print("\n")
     print(f"Wrote {output_path}")
+    print(f"Wrote {output_h5_path}")
 
 
 def main():
     args = parse_args()
     config = read_config_oc(args.config_file, args.remaining, Config)
+
     metadata_df = pd.read_csv(config.metadata)
     os.makedirs(config.output_folder, exist_ok=True)
     if os.path.isdir(config.predictions):
         if config.dictionary_folder is None:
             raise ValueError
         else:
-            dictionary_paths = glob.glob(
-                os.path.join(config.dictionary_folder, "*_dictionary.txt")
+            assert isinstance(config.dictionary_folder, tuple)
+            dictionary_paths = []
+            for f in config.dictionary_folder:
+                dictionary_paths += glob.glob(os.path.join(f, "*_dictionary.txt"))
+            predictions_paths = glob.glob(os.path.join(config.predictions, "*.h5"))
+            exit_if_output_is_newer(
+                predictions_paths + dictionary_paths + [config.metadata],
+                glob.glob(
+                    os.path.join(config.output_folder, "**", "*"), recursive=True
+                ),
             )
+
             stoi_vocabs = get_stoi(dictionary_paths)
             if config.original_dictionary_folder is not None:
                 orig_dictionary_paths = glob.glob(
@@ -296,13 +333,14 @@ def main():
             else:
                 index_translators = None
 
-            predictions_paths = glob.glob(os.path.join(config.predictions, "*.h5"))
             if not predictions_paths:
                 raise ValueError(f"No h5 files found in {config.predictions}")
             for predictions_path in predictions_paths:
                 this_feature_name = os.path.basename(
                     os.path.splitext(predictions_path)[0]
                 )
+                if this_feature_name in config.ignore_features:
+                    continue
                 concat_feature = this_feature_name in config.concat_feature_names
                 if (this_feature_name not in config.features) and not concat_feature:
                     continue

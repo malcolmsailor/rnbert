@@ -23,12 +23,30 @@ def parse_args():
     parser.add_argument("input_files", nargs="+")
     parser.add_argument("--uniform-steps", action="store_true")
     parser.add_argument(
+        "--uniform-steps-csv",
+        type=str,
+        help="""
+the csv_paths output by scripts/get_csv_of_predictions_and_labels.py
+don't contain uniform_steps, but we can get them from a csv file output
+by scripts/get_per_salami_slice_preds.py""",
+    )
+    parser.add_argument(
         "--output-file", default=None, help="We will append a row to this csv file"
     )
     parser.add_argument(
         "--key",
         default=None,
         help="If present, first cell in output csv row (i.e., an index name)",
+    )
+    parser.add_argument(
+        "--filter-labels",
+        type=str,
+        default=None,
+        help=(
+            "For scale degree alteration and possibly other tasks, "
+            "we only want to look at the predictions for certain labels. A comma-"
+            "separated list of integers, e.g. '1,2' or '1,2,4'"
+        ),
     )
     parser.add_argument("--per-class", action="store_true")
     args = parser.parse_args()
@@ -39,13 +57,16 @@ def main():
     args = parse_args()
     if len(args.input_files) == 1:
         df = pd.read_csv(args.input_files[0])
+        paths_df_indices = df[["path", "indices"]]
         df = df.drop(["path", "indices"], axis=1)
         y_true = np.concatenate([np.array(ast.literal_eval(x)) for x in df["labels"]])
         y_pred = np.concatenate(
             [np.array(ast.literal_eval(x)) for x in df["predicted"]]
         )
     else:
-        df = pd.read_csv(args.input_files[0]).drop(["path", "indices"], axis=1)
+        df = pd.read_csv(args.input_files[0])
+        paths_df_indices = df[["path", "indices"]]
+        df = df.drop(["path", "indices"], axis=1)
         for i, input_file in enumerate(args.input_files[1:], start=1):
             new_df = pd.read_csv(input_file).drop(["path", "indices"], axis=1)
             df = df.merge(
@@ -66,21 +87,36 @@ def main():
             )
             for i in range(len(args.input_files))
         ]
+        breakpoint()
         y_true = ["_".join(str(x) for x in xs) for xs in zip(*y_trues)]
         y_pred = ["_".join(str(x) for x in xs) for xs in zip(*y_preds)]
 
     if args.uniform_steps:
-        if "uniform_steps" not in df.columns:
-            raise ValueError(f"No 'uniform_steps' column in {df.columns=}")
+        if args.uniform_steps_csv:
+            uniform_step_df = pd.read_csv(args.uniform_steps_csv)
+            assert (paths_df_indices["path"] == uniform_step_df["path"]).all()
+            assert (paths_df_indices["indices"] == uniform_step_df["indices"]).all()
+            uniform_step_col = uniform_step_df["uniform_steps"]
+
+        else:
+            if "uniform_steps" not in df.columns:
+                raise ValueError(f"No 'uniform_steps' column in {df.columns=}")
+            uniform_step_col = df["uniform_steps"]
 
         repeats = np.concatenate(
-            [np.array(ast.literal_eval(x)) for x in df["uniform_steps"]]
+            [np.array(ast.literal_eval(x)) for x in uniform_step_col]
         )
         y_true = np.repeat(y_true, repeats)
         y_pred = np.repeat(y_pred, repeats)
     del df
 
     assert len(y_true) == len(y_pred)
+
+    if args.filter_labels:
+        filter_labels = np.array(list(int(x) for x in args.filter_labels.split(",")))
+        mask = np.isin(y_true, filter_labels)
+        y_true = y_true[mask]  # type:ignore
+        y_pred = y_pred[mask]  # type:ignore
 
     unique_labels = sorted(set(y_true) | set(y_pred))
 

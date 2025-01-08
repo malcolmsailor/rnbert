@@ -141,7 +141,7 @@ python musicbert_fork/eval_scripts/save_multi_task_predictions.py \
     --dataset test \
     --data-dir "${RNDATA_ROOT-${HOME}/datasets}/rnbert_rn_cond_test_data_bin" \
     --checkpoint "${RN_CKPTS}/${RN_RUN_ID}/checkpoint_best.pt" \
-    --output-folder "${RN_PREDS}"/${RN_RUN_ID}_predicted_keys_from_${KEY_RUN_ID} \
+    --output-folder "${RN_PREDS}"/${RN_RUN_ID}_cond_on_${KEY_RUN_ID} \
     --task musicbert_conditioned_multitask_sequence_tagging
 ```
 
