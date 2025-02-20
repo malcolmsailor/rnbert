@@ -14,8 +14,30 @@ from functools import partial
 import h5py
 import numpy as np
 import pandas as pd
-from disscode.files import exit_if_output_is_newer
-from disscode.script_helpers import normalize_string
+
+try:
+    from disscode.files import exit_if_output_is_newer
+except ImportError:
+    # For when this script is copied into the RNBERT repo where disscode is not
+    # available
+    def exit_if_output_is_newer(*args, **kwargs):
+        pass
+
+
+try:
+    from disscode.script_helpers import normalize_string
+except ImportError:
+    # For when this script is copied into the RNBERT repo where disscode is not
+    # available
+    import unicodedata
+
+    def normalize_string(s):
+        # Annoying special case found in When-in-Rome data:
+        s = s.replace("’", "'")
+        s = unicodedata.normalize("NFKD", s).encode("ASCII", "ignore").decode()
+        return s
+
+
 from tqdm import tqdm
 
 from music_df import quantize_df, read_csv
@@ -149,9 +171,9 @@ def item_handler(
         prev_csv_path = normalize_string(prev_csv_path)
 
     music_df = read_csv(prev_csv_path)
-    assert (
-        music_df is not None
-    ), f"Error reading '{prev_csv_path}', maybe it doesn't exist?"
+    assert music_df is not None, (
+        f"Error reading '{prev_csv_path}', maybe it doesn't exist?"
+    )
 
     if config.take_only_distinct_salami_slices:
         assert "distinct_slice_id" in music_df.columns

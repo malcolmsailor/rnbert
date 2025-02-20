@@ -1,10 +1,8 @@
-# Roadmap
+This repository contains the code for implementing the model described in my [my 2024 ISMIR paper](https://malcolmsailor.com/2025/01/06/ISMIR.html). If you find it useful, please cite the paper as follows:
 
-We cobbled the initial version of this repo together quickly to meet the ISMIR deadline. Here are some next steps we intend to do in the short to medium term future:
+> Sailor, Malcolm. “RNBert: Fine-Tuning a Masked Language Model for Roman Numeral Analysis.” In Proceedings of the International Society for Music Information Retrieval Conference (ISMIR), 2024.
 
-1. Include the dataset creation code (i.e., the code that creates the `dataset.zip` currently included in this repository).
-2. Port the model from `fairseq` to `huggingface`. Using a more actively maintained library should simplify the environment creation, allow others to use the model more easily, and make it easier to try more recent fine-tuning techniques like LORA.
-3. Include our tools for visualizing the predictions on scores.
+If you are interested in fine-tuning MusicBERT yourself or in building on this work, I would suggest using [the HuggingFace port of this model](https://github.com/malcolmsailor/musicbert_hf).
 
 # 1. Set up environment
 

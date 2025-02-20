@@ -1,25 +1,32 @@
 import argparse
-from functools import partial
 import glob
 import logging
+import multiprocessing
 import os
 import shutil
+import warnings
 from ast import literal_eval
 from bisect import bisect_left, bisect_right
 from dataclasses import dataclass, field
+from functools import partial
 from typing import Literal
-import warnings
-import multiprocessing
 
 import h5py
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 from numpy.typing import DTypeLike
+from tqdm import tqdm
 
-from disscode.files import exit_if_output_is_newer
+try:
+    from disscode.files import exit_if_output_is_newer
+except ImportError:
+    # For when this script is copied into the RNBERT repo where disscode is not
+    # available
+    def exit_if_output_is_newer(*args, **kwargs):
+        pass
+
+
 from music_df.script_helpers import read_config_oc
-
 
 # "midpoint": take the left predictions up to the midpoint of the overlap, then take
 #   the right predictions
