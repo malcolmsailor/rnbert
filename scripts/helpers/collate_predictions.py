@@ -1,30 +1,17 @@
 import argparse
 import glob
 import logging
-import multiprocessing
 import os
 import shutil
-import warnings
 from ast import literal_eval
 from bisect import bisect_left, bisect_right
 from dataclasses import dataclass, field
-from functools import partial
 from typing import Literal
 
 import h5py
 import numpy as np
 import pandas as pd
-from numpy.typing import DTypeLike
 from tqdm import tqdm
-
-try:
-    from disscode.files import exit_if_output_is_newer
-except ImportError:
-    # For when this script is copied into the RNBERT repo where disscode is not
-    # available
-    def exit_if_output_is_newer(*args, **kwargs):
-        pass
-
 
 from music_df.script_helpers import read_config_oc
 
@@ -49,7 +36,7 @@ class Config:
     # csv_path, df_indices. Rows should be in one-to-one correspondance with
     # predictions.
     metadata: str
-    # predictions: path to a folder with either .h5 files or .txt files containing
+    # predictions: path to a folder with either an .h5 file or a .txt file containing
     # predicted tokens. Rows should be in one-to-one correspondance with metadata.
     predictions: str
     output_folder: str
@@ -70,8 +57,6 @@ class Config:
     n_specials_to_ignore: int = 0
     features_to_skip: list[str] = field(default_factory=lambda: [])
     subfolder_name: str = "predictions"
-    logits_dtype: DTypeLike = np.float32
-    num_workers: int = 8
 
 
 def parse_args():
@@ -143,7 +128,7 @@ def merge_logits_and_indices(
 
     # We have to create an array and update it at every iteration because otherwise
     #   we run into problems when the array is shorter than the overlap length
-    out_predictions = np.array([], dtype=config.logits_dtype)
+    out_predictions = np.array([])
 
     for indxs, logits in zip(int_indices, logits_list, strict=True):
         # If logits are padded, we need to crop them
@@ -197,15 +182,11 @@ def merge_logits_and_indices(
             elif config.h5_overlaps == "weighted_average":
                 left = (
                     out_predictions[left_overlap_i:]
-                    * np.linspace(
-                        1.0, 0.0, right_overlap_i, dtype=out_predictions.dtype
-                    )[:, None]
+                    * np.linspace(1.0, 0.0, right_overlap_i)[:, None]
                 )
                 right = (
                     logits[:right_overlap_i]
-                    * np.linspace(
-                        0.0, 1.0, right_overlap_i, dtype=out_predictions.dtype
-                    )[:, None]
+                    * np.linspace(0.0, 1.0, right_overlap_i)[:, None]
                 )
                 overlap = left + right
                 out_predictions = np.concatenate(
@@ -228,91 +209,11 @@ def merge_logits_and_indices(
     return out_predictions, out_indices
 
 
-def process_score(predictions_path, out_preds_path, config, lock, tup):
-    score_i, score_rows = tup
-    try:
-        with h5py.File(predictions_path, mode="r") as h5file:
-            score_predictions: list[np.ndarray] = [
-                (h5file[f"logits_{i}"])[:]  # type:ignore
-                for i in score_rows.index
-            ]
-    except KeyError:
-        warnings.warn(
-            f"Key at least one logit in {score_rows.index} not "
-            f"found in {predictions_path}, skipping"
-        )
-        return
-
-    (
-        merged_predictions,
-        merged_indices,
-    ) = merge_logits_and_indices(
-        score_predictions, score_rows.df_indices.tolist(), config
-    )
-
-    metadata_row = score_rows.iloc[0].copy()
-    metadata_row["df_indices"] = merged_indices
-    metadata_row = metadata_row.drop("score_i")
-
-    with lock:
-        with h5py.File(out_preds_path, "a") as h5outf:
-            h5outf.create_dataset(f"logits_{score_i}", data=merged_predictions)
-
-    return metadata_row
-
-
-def process_h5(predictions_path, config, metadata_df, reference_out_metadata_df):
-    if os.path.basename(predictions_path)[:-3] in config.features_to_skip:
-        print(f"Skipping {predictions_path}")
-        return
-    out_preds_path = os.path.join(
-        config.output_folder,
-        config.subfolder_name,
-        os.path.basename(predictions_path),
-    )
-    if not config.overwrite and os.path.exists(out_preds_path):
-        print(f"{out_preds_path} exists, skipping...")
-        return
-    print(f"Handling {predictions_path}")
-
-    os.makedirs(os.path.dirname(out_preds_path), exist_ok=True)
-    metadata_df["score_i"] = pd.factorize(metadata_df["score_id"])[0]
-
-    metadata_rows = []
-    with multiprocessing.Manager() as manager:
-        lock = manager.Lock()
-        with multiprocessing.Pool(config.num_workers) as pool:
-            partial_f = partial(
-                process_score, predictions_path, out_preds_path, config, lock
-            )
-            metadata_rows = list(
-                tqdm(
-                    pool.imap(partial_f, metadata_df.groupby("score_i")),
-                    total=metadata_df["score_id"].nunique(),
-                )
-            )
-            # for score_i, (_, score_rows) in enumerate(metadata_df.groupby("score_id")):
-            #     metadata_row = pool.apply_async(
-            #         process_score,
-            #         (
-            #             score_i,
-            #             score_rows,
-            #         ),
-            #     )
-            #     metadata_rows.append(metadata_row.get())
-
-    reference_out_metadata_df = handle_metadata(
-        metadata_rows, reference_out_metadata_df, config
-    )
-
-    print(f"Wrote {out_preds_path}")
-
-
 def handle_metadata(metadata_rows, reference_df: pd.DataFrame | None, config: Config):
     out_metadata_df = pd.DataFrame(metadata_rows)
     if reference_df is None:
         df_path = os.path.join(config.output_folder, os.path.basename(config.metadata))
-        out_metadata_df.reset_index(drop=True).to_csv(df_path)
+        out_metadata_df.to_csv(df_path)
         print(f"Wrote {df_path}")
         return out_metadata_df
     else:
@@ -323,19 +224,7 @@ def handle_metadata(metadata_rows, reference_df: pd.DataFrame | None, config: Co
 def main():
     args, remaining = parse_args()
     config = read_config_oc(args.config_file, remaining, Config)
-
-    predictions_paths = []
-    if config.prediction_file_type in {"txt", "both"}:
-        predictions_paths.extend(glob.glob(os.path.join(config.predictions, "*.txt")))
-    if config.prediction_file_type in {"h5", "both"}:
-        predictions_paths.extend(glob.glob(os.path.join(config.predictions, "*.h5")))
-    exit_if_output_is_newer(
-        predictions_paths + [config.metadata],
-        glob.glob(os.path.join(config.output_folder, "**", "*"), recursive=True),
-    )
-
-    # I don't know why I was previously resetting the index here
-    metadata_df = pd.read_csv(config.metadata, index_col=0)  # .reset_index(drop=True)
+    metadata_df = pd.read_csv(config.metadata, index_col=0).reset_index(drop=True)
 
     # (Malcolm 2024-01-08) There's no reason to be predicting on augmented
     #   data, which might lead to headaches.
@@ -420,13 +309,51 @@ def main():
         predictions_paths = glob.glob(os.path.join(config.predictions, "*.h5"))
 
         for predictions_path in predictions_paths:
-            process_h5(
-                predictions_path,
-                config,
-                # unique_scores,
-                metadata_df,
-                reference_out_metadata_df,
+            if os.path.basename(predictions_path)[:-3] in config.features_to_skip:
+                print(f"Skipping {predictions_path}")
+                continue
+            out_preds_path = os.path.join(
+                config.output_folder,
+                config.subfolder_name,
+                os.path.basename(predictions_path),
             )
+            if not config.overwrite and os.path.exists(out_preds_path):
+                print(f"{out_preds_path} exists, skipping...")
+                continue
+            print(f"Handling {predictions_path}")
+
+            metadata_rows = []
+            out_predictions = []
+            h5file = h5py.File(predictions_path, mode="r")
+
+            os.makedirs(os.path.dirname(out_preds_path), exist_ok=True)
+            h5outf = h5py.File(out_preds_path, "w")
+            for score_i, score in enumerate(tqdm(unique_scores)):
+                score_rows = metadata_df[metadata_df.score_id == score]
+
+                score_predictions: list[np.ndarray] = [
+                    (h5file[f"logits_{i}"])[:] for i in score_rows.index  # type:ignore
+                ]
+
+                (
+                    merged_predictions,
+                    merged_indices,
+                ) = merge_logits_and_indices(
+                    score_predictions, score_rows.df_indices.tolist(), config
+                )
+                metadata_row = score_rows.iloc[0].copy()
+                metadata_row["df_indices"] = merged_indices
+                metadata_rows.append(metadata_row)
+                h5outf.create_dataset(f"logits_{score_i}", data=merged_predictions)
+                out_predictions.append(merged_predictions)
+                if config.debug:
+                    break
+            h5outf.close()
+            reference_out_metadata_df = handle_metadata(
+                metadata_rows, reference_out_metadata_df, config
+            )
+
+            print(f"Wrote {out_preds_path}")
             if config.debug:
                 break
 
