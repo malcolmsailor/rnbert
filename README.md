@@ -2,7 +2,7 @@ This repository contains the code for implementing the model described in my [my
 
 > Sailor, Malcolm. “RNBert: Fine-Tuning a Masked Language Model for Roman Numeral Analysis.” In Proceedings of the International Society for Music Information Retrieval Conference (ISMIR), 2024.
 
-If you are interested in fine-tuning MusicBERT yourself or in building on this work, I would suggest using [the HuggingFace port of this model](https://github.com/malcolmsailor/musicbert_hf).
+If you are interested in fine-tuning MusicBERT yourself or in building on this work, I would suggest using [my HuggingFace port of this model](https://github.com/malcolmsailor/musicbert_hf).
 
 # 1. Set up environment
 
