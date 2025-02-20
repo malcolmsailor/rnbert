@@ -87,7 +87,7 @@ def main():
             )
             for i in range(len(args.input_files))
         ]
-        breakpoint()
+
         y_true = ["_".join(str(x) for x in xs) for xs in zip(*y_trues)]
         y_pred = ["_".join(str(x) for x in xs) for xs in zip(*y_preds)]
 
