@@ -1,4 +1,4 @@
-This repository contains the code for implementing the model described in my [my 2024 ISMIR paper](https://malcolmsailor.com/2025/01/06/ISMIR.html). If you find it useful, please cite the paper as follows:
+This repository contains the code for implementing the model described in my [my 2024 ISMIR paper](https://doi.org/10.5281/zenodo.14877455). If you find it useful, please cite the paper as follows:
 
 > Sailor, Malcolm. “RNBert: Fine-Tuning a Masked Language Model for Roman Numeral Analysis.” In Proceedings of the International Society for Music Information Retrieval Conference (ISMIR), 2024.
 
